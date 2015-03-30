@@ -95,6 +95,7 @@ object BuildDef extends Build {
         .dependsOn(util, testkit % "provided")
         .settings(yuiCompressor.Plugin.yuiSettings: _*)
         .settings(description := "Webkit Library",
+                  name := "lift-webkit-delta-lifespan",
                   parallelExecution in Test := false,
                   libraryDependencies <++= scalaVersion { sv =>
                     Seq(commons_fileupload, servlet_api, specs2(sv).copy(configurations = Some("provided")), jetty6, jwebunit)

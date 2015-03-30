@@ -410,6 +410,11 @@ trait LiftCometActor extends TypedActor[Any, Any] with ForwardableActor[Any, Any
   def cometProcessingTimeout = LiftRules.cometProcessingTimeout
 
   /**
+   * Override in sub-class to customise how long partial updates are kept.
+   */
+  def cometPartialUpdateLifespan = LiftRules.cometPartialUpdateLifespan
+
+  /**
    * This is to react to comet-requests timing out.
    * When the timeout specified in {@link LiftRules#cometProcessingTimeout} occurs one may override
    * this to send a message to the user informing of the timeout.
@@ -1003,7 +1008,7 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
       theSession.updateFunctionMap(S.functionMap, uniqueId, time)
       S.clearFunctionMap
       val m = millis
-      deltas = (delta :: deltas).filter(d => (m - d.timestamp) < 120000L)
+      deltas = (delta :: deltas).filter(d => (m - d.timestamp) < cometPartialUpdateLifespan)
       if (!listeners.isEmpty) {
         val postPage = theSession.postPageJavaScript()
         val rendered =

@@ -670,6 +670,11 @@ class LiftRules() extends Factory with FormVendor with LazyLoggable {
   @volatile var cometRenderTimeout: Long = 30 seconds
 
   /**
+   * The lifespan of partial updates. Defaults to 120000 ms.
+   */
+  @volatile var cometPartialUpdateLifespan: Long = 120 seconds
+
+  /**
    * The dispatcher that takes a Snippet and converts it to a
    * DispatchSnippet instance
    */
