@@ -863,6 +863,7 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
         case Full(who) => forwardMessageTo(l, who) // forward l
         case _ => listeners = listeners.filter(_._1 != seq)
       }
+      purgeDeltas()
       listenerTransition()
     }
 
@@ -1007,8 +1008,8 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
       val delta = JsDelta(time, cmd)
       theSession.updateFunctionMap(S.functionMap, uniqueId, time)
       S.clearFunctionMap
-      val m = millis
-      deltas = (delta :: deltas).filter(d => (m - d.timestamp) < cometPartialUpdateLifespan)
+      purgeDeltas()
+      deltas = delta :: deltas
       if (!listeners.isEmpty) {
         val postPage = theSession.postPageJavaScript()
         val rendered =
@@ -1023,6 +1024,14 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
         listenerTransition()
       }
     }
+  }
+
+  /**
+   * Purges overdue deltas.
+   */
+  private def purgeDeltas(): Unit = {
+    val m = millis
+    deltas = deltas.filter(d => (m - d.timestamp) < cometPartialUpdateLifespan)
   }
 
 
