@@ -29,6 +29,7 @@ import provider._
 import json.JsonAST.JValue
 import net.liftweb.json._
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.ScheduledFuture
 
 
 /**
@@ -701,9 +702,17 @@ class LiftServlet extends Loggable {
 
   private lazy val cometTimeout: Long = (LiftRules.cometRequestTimeout openOr 120) * 1000L
 
+  private def cancelTimeout(timeoutFutureOption: Option[ScheduledFuture[Unit]]): Unit = {
+    for (timeoutFuture <- timeoutFutureOption if !timeoutFuture.isDone && !timeoutFuture.isCancelled) {
+      timeoutFuture.cancel(false)
+    }
+  }
+
   private def setupContinuation(request: Req, session: LiftSession, actors: List[(LiftCometActor, Long)]): Any = {
+    var timeoutFutureOption: Option[ScheduledFuture[Unit]] = None
     val cont = new ContinuationActor(request, session, actors,
       answers => {
+        cancelTimeout(timeoutFutureOption)
         request.request.resume(
         (request, S.init(request, session)
           (LiftRules.performTransform(
@@ -714,7 +723,7 @@ class LiftServlet extends Loggable {
     try {
       session.enterComet(cont -> request)
 
-      LAPinger.schedule(cont, BreakOut(), TimeSpan(cometTimeout))
+      timeoutFutureOption = Some(LAPinger.schedule(cont, BreakOut(), TimeSpan(cometTimeout)))
 
       request.request.suspend(cometTimeout + 2000L)
     } finally {
@@ -788,9 +797,10 @@ class LiftServlet extends Loggable {
 
       session.enterComet(cont -> request)
 
-      LAPinger.schedule(cont, BreakOut(), TimeSpan(cometTimeout))
+      val timeoutFutureOption = Some(LAPinger.schedule(cont, BreakOut(), TimeSpan(cometTimeout)))
 
       val ret2 = f.get(cometTimeout + 50L) openOr Nil
+      cancelTimeout(timeoutFutureOption)
 
       Full(S.init(originalRequest, session) {
         convertAnswersToCometResponse(session, ret2, actors)
