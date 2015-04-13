@@ -709,7 +709,7 @@ class LiftServlet extends Loggable {
   }
 
   private def setupContinuation(request: Req, session: LiftSession, actors: List[(LiftCometActor, Long)]): Any = {
-    var timeoutFutureOption: Option[ScheduledFuture[Unit]] = None
+    @volatile var timeoutFutureOption: Option[ScheduledFuture[Unit]] = None
     val cont = new ContinuationActor(request, session, actors,
       answers => {
         cancelTimeout(timeoutFutureOption)
